@@ -30,6 +30,7 @@ type ModelBundle = {
   melody: THREE.Group | null;
   car: THREE.Group | null;
   hearts: THREE.Group[];
+  lily: THREE.Group | null;
   progress: number;
   error: string | null;
 };
@@ -39,6 +40,7 @@ const ModelsContext = createContext<ModelBundle>({
   melody: null,
   car: null,
   hearts: [],
+  lily: null,
   progress: 0,
   error: null,
 });
@@ -190,6 +192,7 @@ function ModelsProvider({ children }: { children: ReactNode }) {
   const [melody, setMelody] = useState<THREE.Group | null>(null);
   const [car, setCar] = useState<THREE.Group | null>(null);
   const [hearts, setHearts] = useState<THREE.Group[]>([]);
+  const [lily, setLily] = useState<THREE.Group | null>(null);
   const [progress, setProgress] = useState(8);
   const [error, setError] = useState<string | null>(null);
 
@@ -206,25 +209,30 @@ function ModelsProvider({ children }: { children: ReactNode }) {
         );
         if (cancelled) return;
         setBedroom(room);
-        setProgress(30);
+        setProgress(25);
 
         const bunny = await loadGlb("/models/mymelody/my_melody.glb");
         if (cancelled) return;
         setMelody(bunny);
-        setProgress(50);
+        setProgress(45);
 
         const racer = await loadGlb("/models/f1/f1_mercedes.glb", {
           unlit: false,
         });
         if (cancelled) return;
         setCar(racer);
-        setProgress(70);
+        setProgress(60);
 
         const heartModels = await Promise.all(
           HEART_URLS.map((url) => loadGlb(url)),
         );
         if (cancelled) return;
         setHearts(heartModels);
+        setProgress(80);
+
+        const flower = await loadGlb("/models/lily/pink_lily.glb");
+        if (cancelled) return;
+        setLily(flower);
         setProgress(100);
       } catch (e) {
         if (cancelled) return;
@@ -242,8 +250,8 @@ function ModelsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ bedroom, melody, car, hearts, progress, error }),
-    [bedroom, melody, car, hearts, progress, error],
+    () => ({ bedroom, melody, car, hearts, lily, progress, error }),
+    [bedroom, melody, car, hearts, lily, progress, error],
   );
 
   return (
@@ -251,8 +259,77 @@ function ModelsProvider({ children }: { children: ReactNode }) {
   );
 }
 
+function fitTextureToAspect(
+  texture: THREE.Texture,
+  screenAspect: number,
+  options: { flipX?: boolean; flipY?: boolean } = {},
+) {
+  const { flipX = false, flipY = false } = options;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  // glTF UVs are bottom-left; flipY false matches that, then we mirror via repeat
+  texture.flipY = false;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  const image = texture.image as { width?: number; height?: number } | undefined;
+  const imgW = image?.width ?? 1;
+  const imgH = image?.height ?? 1;
+  const imageAspect = imgW / imgH;
+
+  let repeatX = 1;
+  let repeatY = 1;
+  let offsetX = 0;
+  let offsetY = 0;
+  if (imageAspect < screenAspect) {
+    repeatY = imageAspect / screenAspect;
+    offsetY = (1 - repeatY) / 2;
+  } else {
+    repeatX = screenAspect / imageAspect;
+    offsetX = (1 - repeatX) / 2;
+  }
+
+  if (flipX) {
+    offsetX = offsetX + repeatX;
+    repeatX = -repeatX;
+  }
+  if (flipY) {
+    offsetY = offsetY + repeatY;
+    repeatY = -repeatY;
+  }
+
+  texture.repeat.set(repeatX, repeatY);
+  texture.offset.set(offsetX, offsetY);
+  texture.needsUpdate = true;
+}
+
+function applyPhotoToMeshes(
+  root: THREE.Object3D,
+  texture: THREE.Texture,
+  screenAspect: number,
+  match: (id: string) => boolean,
+  options: { flipX?: boolean; flipY?: boolean } = {},
+) {
+  fitTextureToAspect(texture, screenAspect, options);
+  root.traverse((child) => {
+    if (!(child as THREE.Mesh).isMesh) return;
+    const mesh = child as THREE.Mesh;
+    const matName = Array.isArray(mesh.material)
+      ? ""
+      : ((mesh.material as THREE.Material)?.name ?? "");
+    const id = `${mesh.name} ${matName}`.toLowerCase();
+    if (!match(id)) return;
+
+    mesh.material = new THREE.MeshBasicMaterial({
+      map: texture,
+      side: THREE.DoubleSide,
+      toneMapped: false,
+    });
+  });
+}
+
 function Bedroom() {
   const { bedroom } = useContext(ModelsContext);
+  const photosApplied = useRef(false);
+
   const prepared = useMemo(() => {
     if (!bedroom) return null;
     if (!bedroom.userData.fitted) {
@@ -261,6 +338,51 @@ function Bedroom() {
     }
     return bedroom;
   }, [bedroom]);
+
+  useEffect(() => {
+    if (!prepared || photosApplied.current) return;
+    let cancelled = false;
+    const loader = new THREE.TextureLoader();
+
+    const loadPhoto = (url: string) =>
+      new Promise<THREE.Texture>((resolve, reject) => {
+        loader.load(url, resolve, undefined, reject);
+      });
+
+    (async () => {
+      try {
+        const [monitorTex, frameTex] = await Promise.all([
+          loadPhoto("/images/monitor-wallpaper.jpg"),
+          loadPhoto("/images/desk-frame.jpg"),
+        ]);
+        if (cancelled) return;
+
+        // Desk PC screen — mirrored on X to match UV layout
+        applyPhotoToMeshes(
+          prepared,
+          monitorTex,
+          1.65,
+          (id) => id.includes("blink006") || id.includes("monitorglass_3"),
+          { flipX: true },
+        );
+        // Picture frame above the PC — mirrored on Y to match UV layout
+        applyPhotoToMeshes(
+          prepared,
+          frameTex,
+          0.38 / 0.35,
+          (id) => id.includes("blink_2_"),
+          { flipY: true },
+        );
+        photosApplied.current = true;
+      } catch (err) {
+        console.warn("Bedroom photo textures failed to load", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [prepared]);
 
   if (!prepared) return null;
   return <primitive object={prepared} />;
@@ -415,46 +537,94 @@ function FallingHearts({ celebrating }: { celebrating: boolean }) {
   );
 }
 
-function HeartBurst({ celebrating }: { celebrating: boolean }) {
-  const group = useRef<THREE.Group>(null);
-  const hearts = useMemo(
-    () =>
-      Array.from({ length: 12 }, (_, i) => ({
-        angle: (i / 12) * Math.PI * 2,
-        radius: 0.3 + (i % 3) * 0.1,
-        speed: 0.8 + (i % 4) * 0.2,
-      })),
-    [],
-  );
+function LilyBurst({ celebrating }: { celebrating: boolean }) {
+  const { lily } = useContext(ModelsContext);
+  const celebratingSince = useRef<number | null>(null);
+  const lastBurst = useRef(-1);
+  const count = 14;
+  const BURST_PERIOD = 5;
 
-  useFrame((state) => {
-    if (!group.current || !celebrating) return;
-    const t = state.clock.elapsedTime;
-    group.current.children.forEach((child, i) => {
-      const h = hearts[i];
-      const r = h.radius + ((t * h.speed) % 2);
-      child.position.set(
-        Math.cos(h.angle + t * 0.4) * r,
-        1 + Math.sin(t * 2 + i) * 0.2 + ((t * h.speed) % 2) * 0.35,
-        Math.sin(h.angle + t * 0.4) * r * 0.4,
+  const particles = useMemo(() => {
+    if (!lily) return [];
+    return Array.from({ length: count }, (_, i) => {
+      const clone = lily.clone(true);
+      fitCentered(clone, 0.28 + Math.random() * 0.12);
+      const wrapper = new THREE.Group();
+      wrapper.add(clone);
+
+      const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+      const outward = 0.9 + Math.random() * 0.7;
+      return {
+        object: wrapper,
+        vx: Math.cos(angle) * outward,
+        vy: 2.0 + Math.random() * 0.9,
+        vz: Math.sin(angle) * outward * 0.55,
+        spinX: (Math.random() - 0.5) * 10,
+        spinY: (Math.random() - 0.5) * 12,
+        spinZ: (Math.random() - 0.5) * 10,
+        delay: Math.random() * 0.25,
+      };
+    });
+  }, [lily]);
+
+  useFrame((state, delta) => {
+    if (!celebrating) {
+      celebratingSince.current = null;
+      lastBurst.current = -1;
+      return;
+    }
+    if (celebratingSince.current === null) {
+      celebratingSince.current = state.clock.elapsedTime;
+    }
+
+    const cycleT = state.clock.elapsedTime - celebratingSince.current;
+    const burstIndex = Math.floor(cycleT / BURST_PERIOD);
+    const tInBurst = cycleT % BURST_PERIOD;
+
+    // Reshuffle toss directions each time a burst restarts
+    if (burstIndex !== lastBurst.current) {
+      lastBurst.current = burstIndex;
+      particles.forEach((p, i) => {
+        const angle =
+          (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+        const outward = 0.9 + Math.random() * 0.7;
+        p.vx = Math.cos(angle) * outward;
+        p.vy = 2.0 + Math.random() * 0.9;
+        p.vz = Math.sin(angle) * outward * 0.55;
+        p.spinX = (Math.random() - 0.5) * 10;
+        p.spinY = (Math.random() - 0.5) * 12;
+        p.spinZ = (Math.random() - 0.5) * 10;
+        p.delay = Math.random() * 0.25;
+        p.object.rotation.set(
+          Math.random() * Math.PI,
+          Math.random() * Math.PI,
+          Math.random() * Math.PI,
+        );
+        p.object.visible = true;
+      });
+    }
+
+    const gravity = 2.2;
+    particles.forEach((p) => {
+      const t = Math.max(0, tInBurst - p.delay);
+      p.object.position.set(
+        0.15 + p.vx * t,
+        0.5 + p.vy * t - 0.5 * gravity * t * t,
+        0.35 + p.vz * t,
       );
-      child.scale.setScalar(0.08 + Math.sin(t * 3 + i) * 0.02);
+      p.object.rotation.x += p.spinX * delta;
+      p.object.rotation.y += p.spinY * delta;
+      p.object.rotation.z += p.spinZ * delta;
+      p.object.visible = p.object.position.y > -0.35;
     });
   });
 
-  if (!celebrating) return null;
+  if (!celebrating || particles.length === 0) return null;
 
   return (
-    <group ref={group} position={[0.15, 0.15, 0.35]}>
-      {hearts.map((_, i) => (
-        <mesh key={i}>
-          <sphereGeometry args={[1, 10, 10]} />
-          <meshStandardMaterial
-            color="#ff7aa2"
-            emissive="#ff4d7a"
-            emissiveIntensity={0.35}
-          />
-        </mesh>
+    <group>
+      {particles.map((p, i) => (
+        <primitive key={i} object={p.object} />
       ))}
     </group>
   );
@@ -549,15 +719,17 @@ function SceneContents({ celebrating }: { celebrating: boolean }) {
       <MyMelody celebrating={celebrating} />
       <RaceCar celebrating={celebrating} />
       <FallingHearts celebrating={celebrating} />
-      <HeartBurst celebrating={celebrating} />
+      <LilyBurst celebrating={celebrating} />
     </>
   );
 }
 
 function LoaderOverlay() {
-  const { progress, error, bedroom, melody, car, hearts } =
+  const { progress, error, bedroom, melody, car, hearts, lily } =
     useContext(ModelsContext);
-  const ready = Boolean(bedroom && melody && car && hearts.length > 0);
+  const ready = Boolean(
+    bedroom && melody && car && hearts.length > 0 && lily,
+  );
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
