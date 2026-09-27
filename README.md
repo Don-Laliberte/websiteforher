@@ -28,6 +28,7 @@ Edit the question, No labels, and celebration note in [`src/lib/copy.ts`](src/li
 - `f1/` — Mercedes F1 GLB (`f1_mercedes.glb`)
 - `hearts/` — falling heart emoji GLBs
 - `lily/` — pink lily GLB for the Yes celebration burst
+- `chiikawa/` — Chiikawa / Usagi / Hachiware desk figures
 
 ## Stack
 

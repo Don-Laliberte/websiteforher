@@ -31,6 +31,7 @@ type ModelBundle = {
   car: THREE.Group | null;
   hearts: THREE.Group[];
   lily: THREE.Group | null;
+  chiikawa: THREE.Group | null;
   progress: number;
   error: string | null;
 };
@@ -41,6 +42,7 @@ const ModelsContext = createContext<ModelBundle>({
   car: null,
   hearts: [],
   lily: null,
+  chiikawa: null,
   progress: 0,
   error: null,
 });
@@ -168,6 +170,7 @@ function loadGlb(url: string, options: { unlit?: boolean } = {}) {
               alphaTest: src.alphaTest,
               side: src.side,
               alphaMap: src.alphaMap ?? null,
+              depthWrite: src.depthWrite,
             });
             if (map) {
               map.colorSpace = THREE.SRGBColorSpace;
@@ -193,6 +196,7 @@ function ModelsProvider({ children }: { children: ReactNode }) {
   const [car, setCar] = useState<THREE.Group | null>(null);
   const [hearts, setHearts] = useState<THREE.Group[]>([]);
   const [lily, setLily] = useState<THREE.Group | null>(null);
+  const [chiikawa, setChiikawa] = useState<THREE.Group | null>(null);
   const [progress, setProgress] = useState(8);
   const [error, setError] = useState<string | null>(null);
 
@@ -209,30 +213,35 @@ function ModelsProvider({ children }: { children: ReactNode }) {
         );
         if (cancelled) return;
         setBedroom(room);
-        setProgress(25);
+        setProgress(20);
 
         const bunny = await loadGlb("/models/mymelody/my_melody.glb");
         if (cancelled) return;
         setMelody(bunny);
-        setProgress(45);
+        setProgress(40);
 
         const racer = await loadGlb("/models/f1/f1_mercedes.glb", {
           unlit: false,
         });
         if (cancelled) return;
         setCar(racer);
-        setProgress(60);
+        setProgress(55);
 
         const heartModels = await Promise.all(
           HEART_URLS.map((url) => loadGlb(url)),
         );
         if (cancelled) return;
         setHearts(heartModels);
-        setProgress(80);
+        setProgress(70);
 
         const flower = await loadGlb("/models/lily/pink_lily.glb");
         if (cancelled) return;
         setLily(flower);
+        setProgress(85);
+
+        const crew = await loadGlb("/models/chiikawa/chiikawa_crew.glb");
+        if (cancelled) return;
+        setChiikawa(crew);
         setProgress(100);
       } catch (e) {
         if (cancelled) return;
@@ -250,8 +259,17 @@ function ModelsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ bedroom, melody, car, hearts, lily, progress, error }),
-    [bedroom, melody, car, hearts, lily, progress, error],
+    () => ({
+      bedroom,
+      melody,
+      car,
+      hearts,
+      lily,
+      chiikawa,
+      progress,
+      error,
+    }),
+    [bedroom, melody, car, hearts, lily, chiikawa, progress, error],
   );
 
   return (
@@ -701,6 +719,28 @@ function BedroomCamera() {
   return null;
 }
 
+function DeskChiikawa() {
+  const { chiikawa } = useContext(ModelsContext);
+
+  const prepared = useMemo(() => {
+    if (!chiikawa) return null;
+    if (!chiikawa.userData.fitted) {
+      fitOnFloor(chiikawa, 0.36);
+      // Sleep clock sits ~ (3.88, 1.07, -1.47); place the crew on the desk in front of it
+      chiikawa.position.x = 2.7;
+      chiikawa.position.z = -1.6;
+      chiikawa.position.y += 0.97;
+      // Face into the room (toward −X)
+      chiikawa.rotation.y = Math.PI / 2;
+      chiikawa.userData.fitted = true;
+    }
+    return chiikawa;
+  }, [chiikawa]);
+
+  if (!prepared) return null;
+  return <primitive object={prepared} />;
+}
+
 function SceneContents({ celebrating }: { celebrating: boolean }) {
   return (
     <>
@@ -716,6 +756,7 @@ function SceneContents({ celebrating }: { celebrating: boolean }) {
 
       <BedroomCamera />
       <Bedroom />
+      <DeskChiikawa />
       <MyMelody celebrating={celebrating} />
       <RaceCar celebrating={celebrating} />
       <FallingHearts celebrating={celebrating} />
@@ -725,10 +766,10 @@ function SceneContents({ celebrating }: { celebrating: boolean }) {
 }
 
 function LoaderOverlay() {
-  const { progress, error, bedroom, melody, car, hearts, lily } =
+  const { progress, error, bedroom, melody, car, hearts, lily, chiikawa } =
     useContext(ModelsContext);
   const ready = Boolean(
-    bedroom && melody && car && hearts.length > 0 && lily,
+    bedroom && melody && car && hearts.length > 0 && lily && chiikawa,
   );
   const [hidden, setHidden] = useState(false);
 
