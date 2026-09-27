@@ -1,34 +1,11 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-html {
-  height: 100%;
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --blush: #ffd6e3;
+  --pink: #f7b6c8;
+  --hot-pink: #ff6b9d;
+  --cream: #fff8fb;
+  --soft-black: #2a2a2a;
+  --card: rgba(255, 248, 251, 0.78);
+  --card-border: rgba(255, 182, 200, 0.55);
 }
 
 * {
@@ -37,13 +14,291 @@ body {
   margin: 0;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+html,
+body {
+  height: 100%;
+  max-width: 100vw;
+  overflow: hidden;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+body {
+  color: var(--soft-black);
+  background: #ffe8f0;
+  font-family: var(--font-nunito), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.home {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.garden-canvas,
+.garden-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.garden-canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.garden-fallback {
+  background: radial-gradient(circle at 30% 20%, #ffeaf2, #ffd0df 55%, #f7b6c8);
+}
+
+.garden-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: radial-gradient(circle at 40% 30%, #ffeaf2, #f7b6c8);
+  color: #5a4450;
+  font-family: var(--font-nunito), system-ui, sans-serif;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.garden-loader-bar {
+  width: min(220px, 60vw);
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  overflow: hidden;
+}
+
+.garden-loader-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ff7aa2, #ff4d7a);
+  transition: width 0.2s ease;
+}
+
+.garden-loader-item {
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.7;
+  max-width: 80vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proposal-shell {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 1.25rem;
+  pointer-events: none;
+}
+
+.proposal-card {
+  pointer-events: auto;
+  position: relative;
+  width: min(100%, 420px);
+  min-height: 280px;
+  padding: 2rem 1.75rem 1.75rem;
+  border-radius: 28px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  box-shadow:
+    0 20px 50px rgba(255, 105, 150, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  text-align: center;
+  overflow: visible;
+}
+
+.proposal-card.celebration {
+  animation: celebrate-in 0.55s ease-out;
+}
+
+.proposal-kicker {
+  font-family: var(--font-script), cursive;
+  font-size: clamp(2rem, 6vw, 2.75rem);
+  color: var(--hot-pink);
+  line-height: 1.1;
+  margin-bottom: 0.35rem;
+}
+
+.proposal-title {
+  font-size: clamp(1.2rem, 3.6vw, 1.45rem);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--soft-black);
+  margin-bottom: 1.6rem;
+}
+
+.proposal-note {
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: #5a4450;
+  margin-top: 0.25rem;
+}
+
+.proposal-sign {
+  margin-top: 1rem;
+  font-family: var(--font-script), cursive;
+  font-size: 1.5rem;
+  color: var(--hot-pink);
+}
+
+.proposal-actions {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem 1.25rem;
+  min-height: 72px;
+}
+
+.btn-yes,
+.btn-no {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 800;
+  border-radius: 999px;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease,
+    opacity 0.25s ease;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.btn-yes {
+  position: relative;
+  z-index: 2;
+  padding: 0.85rem 1.8rem;
+  font-size: 1.15rem;
+  color: white;
+  background: linear-gradient(135deg, #ff7aa2, #ff4d7a);
+  box-shadow: 0 8px 20px rgba(255, 105, 150, 0.3);
+}
+
+.btn-yes:hover {
+  filter: brightness(1.05);
+}
+
+.btn-yes:active {
+  transform: scale(0.97);
+}
+
+.btn-no {
+  position: relative;
+  z-index: 3;
+  padding: 0.7rem 1.35rem;
+  font-size: 0.95rem;
+  color: var(--soft-black);
+  background: rgba(255, 255, 255, 0.75);
+  border: 1.5px solid rgba(42, 42, 42, 0.18);
+  box-shadow: 0 4px 12px rgba(42, 42, 42, 0.08);
+  will-change: transform;
+}
+
+.btn-no-static {
+  z-index: 1;
+}
+
+.btn-no-drift {
+  pointer-events: none;
+  animation: lily-drift 0.9s ease-in forwards;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  font-size: 1.6rem;
+  color: var(--hot-pink);
+}
+
+.proposal-hint {
+  margin-top: 1.25rem;
+  font-size: 0.9rem;
+  color: #8a6a78;
+}
+
+.celebration-hearts {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  font-size: 1.4rem;
+  color: var(--hot-pink);
+  animation: float-hearts 1.8s ease-in-out infinite;
+}
+
+@keyframes celebrate-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes lily-drift {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-80px) rotate(25deg) scale(1.4);
+  }
+}
+
+@keyframes float-hearts {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@media (max-width: 480px) {
+  .proposal-card {
+    padding: 1.6rem 1.25rem 1.4rem;
+    border-radius: 22px;
+  }
+
+  .proposal-actions {
+    gap: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proposal-card.celebration,
+  .btn-no-drift,
+  .celebration-hearts {
+    animation: none;
+  }
+
+  .btn-yes,
+  .btn-no {
+    transition: none;
   }
 }
