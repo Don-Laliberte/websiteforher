@@ -2,6 +2,11 @@
 
 export const herName = "Sunnie";
 
+/** First screen before the room loads — answer unlocks the proposal. */
+export const guessPrompt = "Guess what?";
+
+export const chickenButtLabel = "Chicken Butt";
+
 export const question = "Will you be my girlfriend? Officially.";
 
 export const yesLabel = "Yes";

@@ -37,6 +37,35 @@ body {
   overflow: hidden;
 }
 
+.home-gate {
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.guess-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.guess-gate-title {
+  font-family: var(--font-script), cursive;
+  font-size: clamp(2.5rem, 8vw, 3.75rem);
+  font-weight: 400;
+  color: var(--soft-black);
+  line-height: 1.15;
+}
+
+.guess-gate-btn {
+  pointer-events: auto;
+}
+
 .garden-canvas,
 .garden-fallback {
   position: absolute;
