@@ -16,6 +16,10 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 type GardenSceneProps = {
   celebrating: boolean;
+  /** Fired once when all GLBs are ready (for white-veil fade). */
+  onReady?: () => void;
+  /** Skip the pink loader — parent covers load with a white veil. */
+  quietLoader?: boolean;
 };
 
 const HEART_URLS = [
@@ -208,39 +212,26 @@ function ModelsProvider({ children }: { children: ReactNode }) {
 
     (async () => {
       try {
+        // Bedroom is the bulk (~16MB); fetch it first, then overlap the rest
         const room = await loadGlb(
           "/models/bedroom/pink_bedroom_miside.glb",
         );
         if (cancelled) return;
         setBedroom(room);
-        setProgress(20);
+        setProgress(35);
 
-        const bunny = await loadGlb("/models/mymelody/my_melody.glb");
+        const [bunny, racer, heartModels, flower, crew] = await Promise.all([
+          loadGlb("/models/mymelody/my_melody.glb"),
+          loadGlb("/models/f1/f1_mercedes.glb", { unlit: false }),
+          Promise.all(HEART_URLS.map((url) => loadGlb(url))),
+          loadGlb("/models/lily/pink_lily.glb"),
+          loadGlb("/models/chiikawa/chiikawa_crew.glb"),
+        ]);
         if (cancelled) return;
         setMelody(bunny);
-        setProgress(40);
-
-        const racer = await loadGlb("/models/f1/f1_mercedes.glb", {
-          unlit: false,
-        });
-        if (cancelled) return;
         setCar(racer);
-        setProgress(55);
-
-        const heartModels = await Promise.all(
-          HEART_URLS.map((url) => loadGlb(url)),
-        );
-        if (cancelled) return;
         setHearts(heartModels);
-        setProgress(70);
-
-        const flower = await loadGlb("/models/lily/pink_lily.glb");
-        if (cancelled) return;
         setLily(flower);
-        setProgress(85);
-
-        const crew = await loadGlb("/models/chiikawa/chiikawa_crew.glb");
-        if (cancelled) return;
         setChiikawa(crew);
         setProgress(100);
       } catch (e) {
@@ -765,21 +756,30 @@ function SceneContents({ celebrating }: { celebrating: boolean }) {
   );
 }
 
-function LoaderOverlay() {
+function LoaderOverlay({
+  quiet,
+  onReady,
+}: {
+  quiet?: boolean;
+  onReady?: () => void;
+}) {
   const { progress, error, bedroom, melody, car, hearts, lily, chiikawa } =
     useContext(ModelsContext);
   const ready = Boolean(
     bedroom && melody && car && hearts.length > 0 && lily && chiikawa,
   );
   const [hidden, setHidden] = useState(false);
+  const notified = useRef(false);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || notified.current) return;
+    notified.current = true;
+    onReady?.();
     const t = window.setTimeout(() => setHidden(true), 280);
     return () => window.clearTimeout(t);
-  }, [ready]);
+  }, [ready, onReady]);
 
-  if (hidden) return null;
+  if (quiet || hidden) return null;
 
   return (
     <div className="garden-loader" aria-live="polite">
@@ -791,7 +791,11 @@ function LoaderOverlay() {
   );
 }
 
-export default function GardenScene({ celebrating }: GardenSceneProps) {
+export default function GardenScene({
+  celebrating,
+  onReady,
+  quietLoader = false,
+}: GardenSceneProps) {
   return (
     <ModelsProvider>
       <div className="garden-canvas" aria-hidden="true">
@@ -810,7 +814,7 @@ export default function GardenScene({ celebrating }: GardenSceneProps) {
             <SceneContents celebrating={celebrating} />
           </Suspense>
         </Canvas>
-        <LoaderOverlay />
+        <LoaderOverlay quiet={quietLoader} onReady={onReady} />
       </div>
     </ModelsProvider>
   );

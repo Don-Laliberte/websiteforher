@@ -2,10 +2,15 @@
 
 export const herName = "Sunnie";
 
-/** First screen before the room loads — answer unlocks the proposal. */
+/** First screen before the room loads — answer starts the room + next hello. */
 export const guessPrompt = "Guess what?";
 
 export const chickenButtLabel = "Chicken Butt";
+
+/** Second beat after the room begins fading in — then the real question. */
+export const haiPrompt = "Hai!";
+
+export const haiLabel = "Hi ^_^";
 
 export const question = "Will you be my girlfriend? Officially.";
 
