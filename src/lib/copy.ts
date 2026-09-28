@@ -19,16 +19,37 @@ export const yesLabel = "Yes";
 /** Shown on the No button as she keeps trying — playful, never guilt-trippy. */
 export const noLabels = [
   "No",
-  "Are you sure?",
-  "The lilies say yes",
-  "Number 12 is rooting for you",
-  "Even Usagi would hop to yes",
+  "So why do you hate me?",
+  "Yes?",
+  "I'm literally gonna cry T_T",
+  "Please </3",
+  "So just say you love Omar",
+  "K. Fine",
+  "PLS PLS PLS",
+  "I'll behave I promise",
+  "Jaya will be sad :(",
+  "We've already traumatized Loopy",
+  "I'll carry you in Overwatch...?",
+  "Stop! This isn't you!",
+  "...",
+  "...",
+  "...",
+  "Stop",
+  "I mean it",
+  "</3",
+  "Fine",
+  "Just say you hate me",
+  "Like I get it you want me to die",
+  "Is it because I'm a chud?",
+  "It's perfectly average sized...",
+  "No (Yes)",
+  "You don't have a choice",
 ] as const;
 
-export const celebrationTitle = "Okay. It's official.";
+export const celebrationTitle = "COMPUTAH, WIFE HER UP!";
 
 /** Rewrite this before you send her the link. Leave empty to hide the note. */
-export const celebrationNote = "I already knew you'd say yes. ♡";
+export const celebrationNote = "Hehe, I already knew you'd say yes. ♡";
 
 /** Optional signature under the celebration note. */
 export const yourName = "";
