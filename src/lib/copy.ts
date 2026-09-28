@@ -2,7 +2,12 @@
 
 export const herName = "Sunnie";
 
-/** First screen before the room loads — answer unlocks the proposal. */
+/** First white beat — then Guess what? / Chicken Butt unlocks the room. */
+export const haiPrompt = "Hai!";
+
+export const haiLabel = "Hi ^_^";
+
+/** Second white beat — answer starts the room fade into the proposal. */
 export const guessPrompt = "Guess what?";
 
 export const chickenButtLabel = "Chicken Butt";
