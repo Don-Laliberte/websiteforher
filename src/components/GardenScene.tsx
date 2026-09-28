@@ -25,6 +25,20 @@ const HEART_URLS = [
   "/models/hearts/heart_emoji.glb",
 ] as const;
 
+const MONITOR_SLIDES = [
+  "/images/slideshow/01.jpg",
+  "/images/slideshow/02.jpg",
+  "/images/slideshow/03.jpg",
+  "/images/slideshow/04.jpg",
+  "/images/slideshow/05.jpg",
+  "/images/slideshow/06.jpg",
+  "/images/slideshow/07.jpg",
+  "/images/slideshow/08.jpg",
+  "/images/slideshow/09.jpg",
+] as const;
+
+const MONITOR_SLIDE_MS = 5000;
+
 type ModelBundle = {
   bedroom: THREE.Group | null;
   melody: THREE.Group | null;
@@ -347,6 +361,9 @@ function applyPhotoToMeshes(
 function Bedroom() {
   const { bedroom } = useContext(ModelsContext);
   const photosApplied = useRef(false);
+  const monitorMatRef = useRef<THREE.MeshBasicMaterial | null>(null);
+  const slideTexturesRef = useRef<THREE.Texture[]>([]);
+  const slideIndexRef = useRef(0);
 
   const prepared = useMemo(() => {
     if (!bedroom) return null;
@@ -360,6 +377,7 @@ function Bedroom() {
   useEffect(() => {
     if (!prepared || photosApplied.current) return;
     let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | undefined;
     const loader = new THREE.TextureLoader();
 
     const loadPhoto = (url: string) =>
@@ -369,20 +387,37 @@ function Bedroom() {
 
     (async () => {
       try {
-        const [monitorTex, frameTex] = await Promise.all([
-          loadPhoto("/images/monitor-wallpaper.jpg"),
+        const [slides, frameTex] = await Promise.all([
+          Promise.all(MONITOR_SLIDES.map((url) => loadPhoto(url))),
           loadPhoto("/images/desk-frame.jpg"),
         ]);
         if (cancelled) return;
 
-        // Desk PC screen — mirrored on X to match UV layout
-        applyPhotoToMeshes(
-          prepared,
-          monitorTex,
-          1.65,
-          (id) => id.includes("blink006") || id.includes("monitorglass_3"),
-          { flipX: true },
-        );
+        // Pre-fit every slide so swaps keep UV cover + X mirror
+        for (const tex of slides) {
+          fitTextureToAspect(tex, 1.65, { flipX: true });
+        }
+        slideTexturesRef.current = slides;
+        slideIndexRef.current = 0;
+
+        const monitorMat = new THREE.MeshBasicMaterial({
+          map: slides[0],
+          side: THREE.DoubleSide,
+          toneMapped: false,
+        });
+        monitorMatRef.current = monitorMat;
+
+        prepared.traverse((child) => {
+          if (!(child as THREE.Mesh).isMesh) return;
+          const mesh = child as THREE.Mesh;
+          const matName = Array.isArray(mesh.material)
+            ? ""
+            : ((mesh.material as THREE.Material)?.name ?? "");
+          const id = `${mesh.name} ${matName}`.toLowerCase();
+          if (!id.includes("blink006") && !id.includes("monitorglass_3")) return;
+          mesh.material = monitorMat;
+        });
+
         // Picture frame above the PC — mirrored on Y to match UV layout
         applyPhotoToMeshes(
           prepared,
@@ -392,6 +427,15 @@ function Bedroom() {
           { flipY: true },
         );
         photosApplied.current = true;
+
+        intervalId = setInterval(() => {
+          const mats = monitorMatRef.current;
+          const textures = slideTexturesRef.current;
+          if (!mats || textures.length === 0) return;
+          slideIndexRef.current = (slideIndexRef.current + 1) % textures.length;
+          mats.map = textures[slideIndexRef.current];
+          mats.needsUpdate = true;
+        }, MONITOR_SLIDE_MS);
       } catch (err) {
         console.warn("Bedroom photo textures failed to load", err);
       }
@@ -399,6 +443,7 @@ function Bedroom() {
 
     return () => {
       cancelled = true;
+      if (intervalId !== undefined) clearInterval(intervalId);
     };
   }, [prepared]);
 
