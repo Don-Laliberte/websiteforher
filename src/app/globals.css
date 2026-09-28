@@ -60,10 +60,43 @@ body {
   font-weight: 400;
   color: var(--soft-black);
   line-height: 1.15;
+  min-height: 1.2em;
 }
 
 .guess-gate-btn {
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
+}
+
+.guess-gate-btn.is-ready {
   pointer-events: auto;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.type-caret {
+  display: inline-block;
+  width: 0.08em;
+  height: 0.9em;
+  margin-left: 0.08em;
+  vertical-align: -0.08em;
+  background: var(--hot-pink);
+  animation: caret-blink 0.85s steps(1, end) infinite;
+}
+
+@keyframes caret-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  46%,
+  100% {
+    opacity: 0;
+  }
 }
 
 .gate-overlay {
@@ -215,6 +248,7 @@ body {
   line-height: 1.35;
   color: var(--soft-black);
   margin-bottom: 1.6rem;
+  min-height: 2.7em;
 }
 
 .proposal-note {
@@ -239,6 +273,18 @@ body {
   justify-content: center;
   gap: 1rem 1.25rem;
   min-height: 72px;
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s ease;
+}
+
+.proposal-actions.is-ready {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 .btn-yes,
@@ -364,8 +410,14 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .proposal-card.celebration,
   .btn-no-drift,
-  .celebration-hearts {
+  .celebration-hearts,
+  .type-caret {
     animation: none;
+  }
+
+  .proposal-actions,
+  .guess-gate-btn {
+    transition: none;
   }
 
   .btn-yes,

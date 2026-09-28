@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   celebrationNote,
   celebrationTitle,
@@ -10,6 +10,7 @@ import {
   yesLabel,
   yourName,
 } from "@/lib/copy";
+import { useTypewriter } from "@/hooks/useTypewriter";
 
 type ProposalProps = {
   onYes: () => void;
@@ -18,22 +19,11 @@ type ProposalProps = {
 
 type Offset = { x: number; y: number };
 
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-
-  return reduced;
-}
-
 export default function Proposal({ onYes, celebrating }: ProposalProps) {
-  const reducedMotion = usePrefersReducedMotion();
+  const { typed, done: questionReady, reducedMotion } = useTypewriter(
+    question,
+    { enabled: !celebrating },
+  );
   const [attempts, setAttempts] = useState(0);
   const [offset, setOffset] = useState<Offset>({ x: 0, y: 0 });
   const [drifting, setDrifting] = useState(false);
@@ -116,9 +106,17 @@ export default function Proposal({ onYes, celebrating }: ProposalProps) {
     <div className="proposal-shell">
       <div className="proposal-card" ref={cardRef}>
         <p className="proposal-kicker">Hey {herName}</p>
-        <h1 className="proposal-title">{question}</h1>
+        <h1 className="proposal-title" aria-label={question}>
+          <span aria-hidden="true">
+            {typed}
+            {!questionReady ? <span className="type-caret" /> : null}
+          </span>
+        </h1>
 
-        <div className="proposal-actions">
+        <div
+          className={`proposal-actions${questionReady ? " is-ready" : ""}`}
+          aria-hidden={!questionReady}
+        >
           <button
             type="button"
             className="btn-yes"
@@ -127,6 +125,8 @@ export default function Proposal({ onYes, celebrating }: ProposalProps) {
               boxShadow: `0 ${8 + yesGlow * 2}px ${20 + yesGlow * 8}px rgba(255, 105, 150, ${0.25 + yesGlow * 0.08})`,
             }}
             onClick={handleYes}
+            disabled={!questionReady}
+            tabIndex={questionReady ? 0 : -1}
           >
             {yesLabel}
           </button>
@@ -136,6 +136,8 @@ export default function Proposal({ onYes, celebrating }: ProposalProps) {
               type="button"
               ref={noRef}
               className={`btn-no${drifting ? " btn-no-drift" : ""}${reducedMotion ? " btn-no-static" : ""}`}
+              disabled={!questionReady}
+              tabIndex={questionReady ? 0 : -1}
               style={
                 reducedMotion || drifting
                   ? {
@@ -149,9 +151,10 @@ export default function Proposal({ onYes, celebrating }: ProposalProps) {
                     }
               }
               onMouseEnter={() => {
-                if (!reducedMotion) dodge();
+                if (questionReady && !reducedMotion) dodge();
               }}
               onPointerDown={(e) => {
+                if (!questionReady) return;
                 // First touch on phones dodges instead of activating
                 if (e.pointerType === "touch" && !reducedMotion && !drifting) {
                   e.preventDefault();
@@ -160,10 +163,7 @@ export default function Proposal({ onYes, celebrating }: ProposalProps) {
               }}
               onClick={(e) => {
                 e.preventDefault();
-                if (reducedMotion) {
-                  dodge();
-                  return;
-                }
+                if (!questionReady) return;
                 dodge();
               }}
               aria-label={noLabels[labelIndex]}

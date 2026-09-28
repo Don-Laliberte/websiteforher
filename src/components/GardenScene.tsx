@@ -29,17 +29,25 @@ const HEART_URLS = [
   "/models/hearts/heart_emoji.glb",
 ] as const;
 
-const MONITOR_SLIDES = [
-  "/images/slideshow/01.jpg",
-  "/images/slideshow/02.jpg",
-  "/images/slideshow/03.jpg",
-  "/images/slideshow/04.jpg",
-  "/images/slideshow/05.jpg",
-  "/images/slideshow/06.jpg",
-  "/images/slideshow/07.jpg",
-  "/images/slideshow/08.jpg",
-  "/images/slideshow/09.jpg",
-] as const;
+type MonitorSlide = {
+  url: string;
+  /** 0 = bias crop to top of photo, 0.5 = center, 1 = bottom */
+  anchorY?: number;
+};
+
+const MONITOR_SLIDES: MonitorSlide[] = [
+  { url: "/images/slideshow/01.jpg" },
+  { url: "/images/slideshow/02.jpg" },
+  { url: "/images/slideshow/03.jpg" },
+  // Faces sit at the top of this Discord screenshot — bias crop upward
+  { url: "/images/slideshow/04.jpg", anchorY: 0.43 },
+  { url: "/images/slideshow/05.jpg" },
+  // Portrait selfie — keep her eyes in frame (center crop clips the top)
+  { url: "/images/slideshow/06.jpg", anchorY: 0.34 },
+  { url: "/images/slideshow/07.jpg" },
+  { url: "/images/slideshow/08.jpg" },
+  { url: "/images/slideshow/09.jpg" },
+];
 
 const MONITOR_SLIDE_MS = 5000;
 
@@ -285,9 +293,21 @@ function ModelsProvider({ children }: { children: ReactNode }) {
 function fitTextureToAspect(
   texture: THREE.Texture,
   screenAspect: number,
-  options: { flipX?: boolean; flipY?: boolean } = {},
+  options: {
+    flipX?: boolean;
+    flipY?: boolean;
+    /** 0 = crop toward top of photo, 0.5 = center, 1 = bottom */
+    anchorY?: number;
+    /** 0 = crop toward left of photo, 0.5 = center, 1 = right */
+    anchorX?: number;
+  } = {},
 ) {
-  const { flipX = false, flipY = false } = options;
+  const {
+    flipX = false,
+    flipY = false,
+    anchorY = 0.5,
+    anchorX = 0.5,
+  } = options;
   texture.colorSpace = THREE.SRGBColorSpace;
   // glTF UVs are bottom-left; flipY false matches that, then we mirror via repeat
   texture.flipY = false;
@@ -304,10 +324,10 @@ function fitTextureToAspect(
   let offsetY = 0;
   if (imageAspect < screenAspect) {
     repeatY = imageAspect / screenAspect;
-    offsetY = (1 - repeatY) / 2;
+    offsetY = (1 - repeatY) * anchorY;
   } else {
     repeatX = screenAspect / imageAspect;
-    offsetX = (1 - repeatX) / 2;
+    offsetX = (1 - repeatX) * anchorX;
   }
 
   if (flipX) {
@@ -379,15 +399,19 @@ function Bedroom() {
     (async () => {
       try {
         const [slides, frameTex] = await Promise.all([
-          Promise.all(MONITOR_SLIDES.map((url) => loadPhoto(url))),
+          Promise.all(MONITOR_SLIDES.map((slide) => loadPhoto(slide.url))),
           loadPhoto("/images/desk-frame.jpg"),
         ]);
         if (cancelled) return;
 
         // Pre-fit every slide so swaps keep UV cover + X mirror
-        for (const tex of slides) {
-          fitTextureToAspect(tex, 1.65, { flipX: true });
-        }
+        slides.forEach((tex, i) => {
+          const slide = MONITOR_SLIDES[i];
+          fitTextureToAspect(tex, 1.65, {
+            flipX: true,
+            anchorY: slide.anchorY ?? 0.5,
+          });
+        });
         slideTexturesRef.current = slides;
         slideIndexRef.current = 0;
 
