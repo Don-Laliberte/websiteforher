@@ -30,6 +30,20 @@ Edit the question, No labels, and celebration note in [`src/lib/copy.ts`](src/li
 - `lily/` — pink lily GLB for the Yes celebration burst
 - `chiikawa/` — Chiikawa / Usagi / Hachiware desk figures
 
+### Model credits (CC BY 4.0)
+
+All models below are from Sketchfab and licensed under [Creative Commons Attribution 4.0](http://creativecommons.org/licenses/by/4.0/):
+
+- [Chiikawa, Usagi & Hachiware - Fan Model](https://skfb.ly/pHqt8) by Liam
+- [F1 Mercedes](https://skfb.ly/p8STu) by clemogax
+- [My Melody](https://skfb.ly/pGJFA) by fukkacumy
+- [Pink Bedroom (MiSide)](https://skfb.ly/pBrnA) by zHairezt
+- [Heart Emoji](https://skfb.ly/6DqVP) by PriscilaSantiago
+- [Black heart](https://skfb.ly/oOvYD) by yuning8.3.1
+- [Pink Lily](https://skfb.ly/6yI9O) by Michael Hooper
+
+Attribution is also available in-app via the **Credits** control.
+
 ## Stack
 
 - Next.js (App Router) + React + TypeScript

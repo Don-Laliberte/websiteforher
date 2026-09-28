@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import GuessGate from "@/components/GuessGate";
+import ModelCredits from "@/components/ModelCredits";
 import Proposal from "@/components/Proposal";
 import { chickenButtLabel, guessPrompt, haiLabel, haiPrompt } from "@/lib/copy";
 
@@ -60,6 +61,7 @@ export default function Home() {
           buttonLabel={haiLabel}
           onAnswer={() => setStep("guess")}
         />
+        <ModelCredits />
       </main>
     );
   }
@@ -72,6 +74,7 @@ export default function Home() {
           buttonLabel={chickenButtLabel}
           onAnswer={handleChickenButt}
         />
+        <ModelCredits />
       </main>
     );
   }
@@ -92,6 +95,7 @@ export default function Home() {
       />
 
       <Proposal celebrating={celebrating} onYes={() => setCelebrating(true)} />
+      <ModelCredits />
     </main>
   );
 }
