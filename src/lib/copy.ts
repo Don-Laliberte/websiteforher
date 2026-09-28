@@ -2,15 +2,15 @@
 
 export const herName = "Sunnie";
 
-/** First screen before the room loads — answer starts the room + next hello. */
-export const guessPrompt = "Guess what?";
-
-export const chickenButtLabel = "Chicken Butt";
-
-/** Second beat after the room begins fading in — then the real question. */
+/** First white beat — then Guess what? / Chicken Butt unlocks the room. */
 export const haiPrompt = "Hai!";
 
 export const haiLabel = "Hi ^_^";
+
+/** Second white beat — answer starts the room fade into the proposal. */
+export const guessPrompt = "Guess what?";
+
+export const chickenButtLabel = "Chicken Butt";
 
 export const question = "Will you be my girlfriend? Officially.";
 

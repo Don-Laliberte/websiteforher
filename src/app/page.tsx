@@ -4,20 +4,20 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import GuessGate from "@/components/GuessGate";
 import Proposal from "@/components/Proposal";
-import { haiLabel, haiPrompt } from "@/lib/copy";
+import { chickenButtLabel, guessPrompt, haiLabel, haiPrompt } from "@/lib/copy";
 
 const GardenScene = dynamic(() => import("@/components/GardenScene"), {
   ssr: false,
   loading: () => <div className="garden-fallback" aria-hidden="true" />,
 });
 
-type Step = "guess" | "hai" | "proposal";
+type Step = "hai" | "guess" | "proposal";
 
 const VEIL_MIN_MS = 700;
 const VEIL_FADE_MS = 1200;
 
 export default function Home() {
-  const [step, setStep] = useState<Step>("guess");
+  const [step, setStep] = useState<Step>("hai");
   const [celebrating, setCelebrating] = useState(false);
   const [veilFaded, setVeilFaded] = useState(false);
   const unlockedAt = useRef<number | null>(null);
@@ -39,7 +39,7 @@ export default function Home() {
     readyRef.current = false;
     fadeStarted.current = false;
     setVeilFaded(false);
-    setStep("hai");
+    setStep("proposal");
   };
 
   const handleRoomReady = useCallback(() => {
@@ -48,14 +48,30 @@ export default function Home() {
   }, [tryStartFade]);
 
   useEffect(() => {
-    if (step !== "hai" || veilFaded || !readyRef.current) return;
+    if (step !== "proposal" || veilFaded || !readyRef.current) return;
     tryStartFade();
   }, [step, veilFaded, tryStartFade]);
+
+  if (step === "hai") {
+    return (
+      <main className="home home-gate">
+        <GuessGate
+          prompt={haiPrompt}
+          buttonLabel={haiLabel}
+          onAnswer={() => setStep("guess")}
+        />
+      </main>
+    );
+  }
 
   if (step === "guess") {
     return (
       <main className="home home-gate">
-        <GuessGate onAnswer={handleChickenButt} />
+        <GuessGate
+          prompt={guessPrompt}
+          buttonLabel={chickenButtLabel}
+          onAnswer={handleChickenButt}
+        />
       </main>
     );
   }
@@ -75,17 +91,7 @@ export default function Home() {
         aria-hidden="true"
       />
 
-      {step === "hai" ? (
-        <div className="gate-overlay">
-          <GuessGate
-            prompt={haiPrompt}
-            buttonLabel={haiLabel}
-            onAnswer={() => setStep("proposal")}
-          />
-        </div>
-      ) : (
-        <Proposal celebrating={celebrating} onYes={() => setCelebrating(true)} />
-      )}
+      <Proposal celebrating={celebrating} onYes={() => setCelebrating(true)} />
     </main>
   );
 }
