@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, type CSSProperties } from "react";
 import {
   celebrationNote,
   celebrationTitle,
@@ -34,7 +34,6 @@ export default function Proposal({ onYes, celebrating }: ProposalProps) {
 
   const maxLabelIndex = noLabels.length - 1;
   const labelIndex = Math.min(attempts, maxLabelIndex);
-  const noGone = gone || attempts >= noLabels.length;
 
   const dodge = useCallback(() => {
     const now = performance.now();
@@ -46,6 +45,7 @@ export default function Proposal({ onYes, celebrating }: ProposalProps) {
       const next = prev + 1;
       if (next >= noLabels.length) {
         setDrifting(true);
+        // Yes recenters only after No fully drifts away
         window.setTimeout(() => setGone(true), 900);
       }
       return next;
@@ -79,14 +79,19 @@ export default function Proposal({ onYes, celebrating }: ProposalProps) {
     onYes();
   };
 
-  const yesScale = 1 + Math.min(attempts, 5) * 0.12;
-  const yesGlow = Math.min(attempts, 5);
+  // Grow steadily through every No prompt; max size when No is gone
+  const growth =
+    noLabels.length > 0
+      ? Math.min(attempts, noLabels.length) / noLabels.length
+      : 0;
+  const yesScale = 1 + growth * 1.05;
+  const yesGlow = growth * 10;
 
   if (celebrating) {
     return (
       <div className="proposal-shell">
         <div className="proposal-card celebration" role="status">
-          <p className="proposal-kicker">For {herName}</p>
+          <p className="proposal-kicker">I love you {herName}</p>
           <h1 className="proposal-title">{celebrationTitle}</h1>
           {celebrationNote ? (
             <p className="proposal-note">{celebrationNote}</p>
@@ -114,16 +119,18 @@ export default function Proposal({ onYes, celebrating }: ProposalProps) {
         </h1>
 
         <div
-          className={`proposal-actions${questionReady ? " is-ready" : ""}`}
+          className={`proposal-actions${questionReady ? " is-ready" : ""}${gone ? " is-solo" : ""}`}
           aria-hidden={!questionReady}
         >
           <button
             type="button"
             className="btn-yes"
-            style={{
-              transform: `scale(${yesScale})`,
-              boxShadow: `0 ${8 + yesGlow * 2}px ${20 + yesGlow * 8}px rgba(255, 105, 150, ${0.25 + yesGlow * 0.08})`,
-            }}
+            style={
+              {
+                "--yes-scale": yesScale,
+                boxShadow: `0 ${8 + yesGlow * 2}px ${20 + yesGlow * 8}px rgba(255, 105, 150, ${0.25 + yesGlow * 0.08})`,
+              } as CSSProperties
+            }
             onClick={handleYes}
             disabled={!questionReady}
             tabIndex={questionReady ? 0 : -1}
@@ -131,13 +138,13 @@ export default function Proposal({ onYes, celebrating }: ProposalProps) {
             {yesLabel}
           </button>
 
-          {!noGone ? (
+          {!gone ? (
             <button
               type="button"
               ref={noRef}
               className={`btn-no${drifting ? " btn-no-drift" : ""}${reducedMotion ? " btn-no-static" : ""}`}
-              disabled={!questionReady}
-              tabIndex={questionReady ? 0 : -1}
+              disabled={!questionReady || drifting}
+              tabIndex={questionReady && !drifting ? 0 : -1}
               style={
                 reducedMotion || drifting
                   ? {
@@ -151,19 +158,19 @@ export default function Proposal({ onYes, celebrating }: ProposalProps) {
                     }
               }
               onMouseEnter={() => {
-                if (questionReady && !reducedMotion) dodge();
+                if (questionReady && !reducedMotion && !drifting) dodge();
               }}
               onPointerDown={(e) => {
-                if (!questionReady) return;
+                if (!questionReady || drifting) return;
                 // First touch on phones dodges instead of activating
-                if (e.pointerType === "touch" && !reducedMotion && !drifting) {
+                if (e.pointerType === "touch" && !reducedMotion) {
                   e.preventDefault();
                   dodge();
                 }
               }}
               onClick={(e) => {
                 e.preventDefault();
-                if (!questionReady) return;
+                if (!questionReady || drifting) return;
                 dodge();
               }}
               aria-label={noLabels[labelIndex]}
@@ -172,13 +179,6 @@ export default function Proposal({ onYes, celebrating }: ProposalProps) {
             </button>
           ) : null}
         </div>
-
-        {attempts > 0 && !noGone ? (
-          <p className="proposal-hint">The Yes button is getting happier…</p>
-        ) : null}
-        {noGone ? (
-          <p className="proposal-hint">Looks like Yes is the only answer left.</p>
-        ) : null}
       </div>
     </div>
   );
